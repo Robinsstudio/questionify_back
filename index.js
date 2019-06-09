@@ -50,4 +50,19 @@ app.post(/SaveMultipleChoice/, (req, res) => {
 	Impl.saveMultipleChoice(multipleChoiceData).then( () => res.status(200).end() );
 });
 
+app.post('/GenerateLink', (req, res) => {
+	const { _id } = req.body;
+	Impl.generateLink(_id).then(() => res.status(200).end());
+});
+
+app.post('/GetMultipleChoice', (req, res) => {
+	const { url } = req.body;
+	Impl.getByLink(url).then(questions => res.json(questions));
+});
+
+app.post('/SaveSession', (req, res) => {
+	const { url, session } = req.body;
+	Impl.saveSession(url, session).then(questions => res.json(questions));
+});
+
 http.listen(8080);

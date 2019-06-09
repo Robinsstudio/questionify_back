@@ -19,6 +19,18 @@ const MultipleChoice  = mongoose.model('MultipleChoice', {
 	type: String,
 	name: String,
 	questions: [{ idQuestion: ObjectId }],
+	url: String,
+	sessions: [{
+		name: String,
+		questions: [{
+			label: String,
+			answers: [{
+				label: String,
+				checked: Boolean,
+				correct: Boolean
+			}]
+		}]
+	}],
 	idParent: ObjectId
 });
 
@@ -52,6 +64,18 @@ const deleteRecursive = (_id) => {
 	});
 }
 
+const getQuestionsByIds = (_ids) => {
+	return Question.where('_id').in(_ids).then(questions => {
+		return questions.sort((q1, q2) => _ids.indexOf(q1.id) - _ids.indexOf(q2.id));
+	});
+};
+
+const getQuestionsByIdsWithoutAnswers = (_ids) => {
+	return Question.where('_id').in(_ids).select('label answers.label -_id').then(questions => {
+		return questions.sort((q1, q2) => _ids.indexOf(q1.id) - _ids.indexOf(q2.id));
+	});
+};
+
 module.exports = {
 	createFolder: (folderData) => {
 		return new Folder({ ...folderData, type: 'folder' }).save();
@@ -74,11 +98,7 @@ module.exports = {
 		});
 	},
 
-	getQuestionsByIds: (_ids) => {
-		return Question.where('_id').in(_ids).then(questions => {
-			return questions.sort((q1, q2) => _ids.indexOf(q1.id) - _ids.indexOf(q2.id));
-		});
-	},
+	getQuestionsByIds,
 
 	getQuestionsByTags: (tags, idParent) => {
 		return Question.find({ idParent }).where('tags').all(tags).then(questions => {
@@ -121,5 +141,41 @@ module.exports = {
 		} else {
 			return new MultipleChoice(multipleChoiceData).save();
 		}
+	},
+
+	generateLink: (_id) => {
+		return MultipleChoice.findById(_id).then(multipleChoice => {
+			multipleChoice.url = Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+			return multipleChoice.save();
+		});
+	},
+
+	getByLink: (url) => {
+		return MultipleChoice.find({ url }).then(multipleChoices => {
+			if (multipleChoices.length) {
+				return getQuestionsByIdsWithoutAnswers(multipleChoices[0].questions.map(quest => quest.idQuestion));
+			}
+			return Promise.resolve([]);
+		});
+	},
+
+	saveSession: (url, session) => {
+		return MultipleChoice.find({ url }).then(multipleChoices => {
+			if (multipleChoices.length) {
+				const multipleChoice = multipleChoices[0];
+				return getQuestionsByIds(multipleChoice.questions.map(q => q.idQuestion)).then(questions => {
+					session.questions.forEach((question, i) => {
+						question.answers.forEach((answer, j) => {
+							answer.correct = questions[i].answers[j].correct;
+						});
+					});
+					multipleChoice.sessions = multipleChoice.sessions || [];
+					multipleChoice.sessions = multipleChoice.sessions.concat(session);
+					multipleChoice.save();
+					return session.questions;
+				});
+			}
+			return Promise.resolve();
+		});
 	}
 }
