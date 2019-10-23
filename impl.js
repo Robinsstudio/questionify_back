@@ -127,6 +127,16 @@ module.exports = {
 		]);
 	},
 
+	paste: (_id, idParent) => {
+		return getById(_id).then(file => {
+			file._id = mongoose.Types.ObjectId();
+			file.idParent = idParent;
+			file.name += ' - Copie';
+			file.isNew = true;
+			return file.save();
+		});
+	},
+
 	saveQuestion: (questionData) => {
 		if (questionData._id) {
 			return Question.findOneAndUpdate({ _id: questionData._id }, questionData, { upsert: true });
