@@ -35,6 +35,11 @@ app.post('/Rename', (req, res) => {
 	Impl.rename(_id, name).then( () => res.status(200).end() );
 });
 
+app.post('/Move', (req, res) => {
+	const { _id, idParent } = req.body;
+	Impl.move(_id, idParent).then(() => res.status(200).end());
+});
+
 app.post('/Delete', (req, res) => {
 	const { _id } = req.body;
 	Impl.delete(_id).then(() => res.status(200).end());

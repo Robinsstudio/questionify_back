@@ -118,6 +118,13 @@ module.exports = {
 		});
 	},
 
+	move: (_id, idParent) => {
+		return getById(_id).then(file => {
+			file.idParent = idParent;
+			return file.save();
+		});
+	},
+
 	delete: (_id) => {
 		return Promise.all([
 			deleteRecursive(_id),
