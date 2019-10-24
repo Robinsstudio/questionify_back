@@ -58,6 +58,22 @@ const getParents = (folder) => {
 	}) : Promise.resolve([]);
 };
 
+const copyRecursiveTo = (_id, idParent) => {
+	return getById(_id).then(file => {
+		const newId = mongoose.Types.ObjectId();
+
+		getByParams({ idParent: file._id }).then(files => {
+			return Promise.all(files.map(f => copyRecursiveTo(f._id, newId)));
+		}).then(() => {
+			file._id = newId;
+			file.idParent = idParent;
+			file.name += ' - Copie';
+			file.isNew = true;
+			return file.save();
+		});
+	});
+}
+
 const deleteRecursive = (_id) => {
 	return Folder.find({ idParent: _id }).then(folders => Promise.all(folders.map(folder => deleteRecursive(folder)))).then(() => {
 		return Promise.all([ Folder.deleteMany({ idParent: _id }), Question.deleteMany({ idParent: _id }), MultipleChoice.deleteMany({ idParent: _id }) ]);
@@ -135,13 +151,7 @@ module.exports = {
 	},
 
 	paste: (_id, idParent) => {
-		return getById(_id).then(file => {
-			file._id = mongoose.Types.ObjectId();
-			file.idParent = idParent;
-			file.name += ' - Copie';
-			file.isNew = true;
-			return file.save();
-		});
+		return copyRecursiveTo(_id, idParent);
 	},
 
 	saveQuestion: (questionData) => {
